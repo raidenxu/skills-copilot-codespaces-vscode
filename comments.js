@@ -1,44 +1,49 @@
 // Create Web server
-const express = require('express');
-const app = express();
-// Create Web socket server
-const server = require('http').Server(app);
-const io = require('socket.io')(server);
-// Create a connection to the database
-const mongoose = require('mongoose');
-const db = mongoose.connect('mongodb://localhost/comments');
 
-// Create a schema for the comments
-const Comment = require('./model/comments');
+var http = require('http');
+var url = require('url');
+var items = [];
 
-// Create a route for the main page
-app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/views/index.html');
+var server = http.createServer(function(req, res) {
+    switch(req.method) {
+        case 'POST':
+            var item = '';
+            req.setEncoding('utf8');
+            req.on('data', function(chunk) {
+                item += chunk;
+            });
+            req.on('end', function() {
+                items.push(item);
+                res.end('OK\n');
+            });
+            break;
+        case 'GET':
+            // items.forEach(function(item, i) {
+            //     res.write(i + ') ' + item + '\n');
+            // });
+            // res.end();
+            var body = items.map(function(item, i) {
+                return i + ') ' + item;
+            }).join('\n');
+            res.setHeader('Content-Length', Buffer.byteLength(body));
+            res.setHeader('Content-Type', 'text/plain; charset="utf-8"');
+            res.end(body);
+            break;
+        case 'DELETE':
+            var path = url.parse(req.url).pathname;
+            var i = parseInt(path.slice(1), 10);
+            if (isNaN(i)) {
+                res.statusCode = 400;
+                res.end('Invalid item id');
+            } else if (!items[i]) {
+                res.statusCode = 404;
+                res.end('Item not found');
+            } else {
+                items.splice(i, 1);
+                res.end('OK\n');
+            }
+            break;
+    }
 });
 
-// Create a route for getting comments
-app.get('/comments', (req, res) => {
-  // Get all comments in the Comment model
-  Comment.find({}, (err, comments) => {
-    // Send the comments to the client
-    res.send(comments);
-  });
-});
-
-// Create a route for posting comments
-app.post('/comments', (req, res) => {
-  // Get the comment from the request body
-  const comment = req.body;
-  // Create a new comment model instance
-  const commentModel = new Comment(comment);
-  // Save it to database
-  commentModel.save((err, savedComment) => {
-    // Send the comment to the client
-    res.send(savedComment);
-  });
-});
-
-// Make the server listen on port 3000
-server.listen(3000, () => {
-  console.log('Server listening on port 3000');
-});
+server.listen(3000);
