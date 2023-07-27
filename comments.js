@@ -46,4 +46,4 @@ var server = http.createServer(function(req, res) {
     }
 });
 
-server.listen(3000);
+server.listen(3000); // Create web server on port 3000
