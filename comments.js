@@ -1,38 +1,33 @@
 // Create Web server
-// Run: node comments.js
-// Test: http://localhost:3000/comments
+var express = require('express');
+var router = express.Router();
 
-// Import modules
-var http = require('http');
-var url = require('url');
-var items = [];
+// Create a new Comment
+router.post('/', function(req, res) {
+    console.log('POST /comments');
+    console.log(req.body);
 
-// Create Web server
-var server = http.createServer(function(req, res) {
-  switch (req.method) {
-    case 'POST':
-      var item = '';
-      req.setEncoding('utf8');
-      req.on('data', function(chunk) {
-        item += chunk;
-      });
-      req.on('end', function() {
-        items.push(item);
-        res.end('OK\n');
-      });
-      break;
-    case 'GET':
-      var body = items.map(function(item, i) {
-        return i + ') ' + item;
-      }).join('\n');
-      res.setHeader('Content-Length', Buffer.byteLength(body));
-      res.setHeader('Content-Type', 'text/plain; charset="utf-8"');
-      res.end(body);
-      break;
-  }
+    var comment = new Comment({
+        name: req.body.name,
+        text: req.body.text
+    });
+
+    comment.save(function(err, comment) {
+        if (err) return res.status(500).send(err.message);
+        res.status(200).jsonp(comment);
+    });
 });
 
-// Listen port 3000
-server.listen(3000, function() {
-  console.log('Listening on port 3000');
+// GET all comments
+router.get('/', function(req, res) {
+    console.log('GET /comments');
+
+    Comment.find(function(err, comments) {
+        if (err) res.send(500, err.message);
+
+        console.log('GET /comments');
+        res.status(200).jsonp(comments);
+    });
 });
+
+module.exports = router;
