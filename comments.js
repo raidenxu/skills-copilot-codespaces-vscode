@@ -1,33 +1,44 @@
 // Create Web server
-var express = require('express');
-var router = express.Router();
+const express = require('express');
+const app = express();
+// Create Web socket server
+const server = require('http').Server(app);
+const io = require('socket.io')(server);
+// Create a connection to the database
+const mongoose = require('mongoose');
+const db = mongoose.connect('mongodb://localhost/comments');
 
-// Create a new Comment
-router.post('/', function(req, res) {
-    console.log('POST /comments');
-    console.log(req.body);
+// Create a schema for the comments
+const Comment = require('./model/comments');
 
-    var comment = new Comment({
-        name: req.body.name,
-        text: req.body.text
-    });
-
-    comment.save(function(err, comment) {
-        if (err) return res.status(500).send(err.message);
-        res.status(200).jsonp(comment);
-    });
+// Create a route for the main page
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/views/index.html');
 });
 
-// GET all comments
-router.get('/', function(req, res) {
-    console.log('GET /comments');
-
-    Comment.find(function(err, comments) {
-        if (err) res.send(500, err.message);
-
-        console.log('GET /comments');
-        res.status(200).jsonp(comments);
-    });
+// Create a route for getting comments
+app.get('/comments', (req, res) => {
+  // Get all comments in the Comment model
+  Comment.find({}, (err, comments) => {
+    // Send the comments to the client
+    res.send(comments);
+  });
 });
 
-module.exports = router;
+// Create a route for posting comments
+app.post('/comments', (req, res) => {
+  // Get the comment from the request body
+  const comment = req.body;
+  // Create a new comment model instance
+  const commentModel = new Comment(comment);
+  // Save it to database
+  commentModel.save((err, savedComment) => {
+    // Send the comment to the client
+    res.send(savedComment);
+  });
+});
+
+// Make the server listen on port 3000
+server.listen(3000, () => {
+  console.log('Server listening on port 3000');
+});
